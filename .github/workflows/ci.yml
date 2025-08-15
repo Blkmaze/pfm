@@ -1,32 +1,20 @@
 ﻿name: CI
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
+  push: { branches: [ main ] }
+  pull_request: { branches: [ main ] }
 jobs:
   frontend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
+    defaults: { run: { working-directory: . } }
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
+        with: { lfs: true }
       - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: ./package-lock.json
-      - run: npm ci
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: ./package-lock.json }
+      - run: npm ci || npm i
       - run: npm run lint --if-present
       - run: npm test --if-present
       - run: npm run build --if-present
-      - name: Upload build artifact
+      - uses: actions/upload-artifact@v4
         if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-dist
-          path: ./dist
+        with: { name: web-dist, path: ./dist }

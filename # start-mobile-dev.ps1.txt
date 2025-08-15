@@ -1,0 +1,41 @@
+# start-mobile-dev.ps1
+param(
+  [int]$Port = 5173,                 # change if your dev server uses another port
+  [string]$FrontendDir = ".\web",    # "." if your frontend is repo root
+  [string]$DevCmd = "npm run dev -- --host --port"  # customize if needed
+)
+
+$ErrorActionPreference = "Stop"
+
+# 1) Get LAN IPv4
+$ip = (Get-NetIPAddress -AddressFamily IPv4 `
+       | Where-Object { $_.IPAddress -notlike "169.254.*" -and $_.IPAddress -ne "127.0.0.1" } `
+       | Sort-Object -Property InterfaceMetric `
+       | Select-Object -First 1 -ExpandProperty IPAddress)
+
+if (-not $ip) {
+  Write-Host "Could not determine LAN IP. Are you connected to a network?" -ForegroundColor Yellow
+} else {
+  Write-Host "Your LAN IP: $ip" -ForegroundColor Cyan
+  Write-Host "On your phone, open: http://$ip:$Port" -ForegroundColor Green
+}
+
+# 2) Ensure firewall rule exists
+$ruleName = "DevServer-$Port"
+$rule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+if (-not $rule) {
+  New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port | Out-Null
+  Write-Host "Firewall rule created for TCP port $Port." -ForegroundColor Green
+} else {
+  # Update port if needed (rare)
+  Write-Host "Firewall rule '$ruleName' already exists." -ForegroundColor Green
+}
+
+# 3) Start dev server
+if (Test-Path $FrontendDir) {
+  Push-Location $FrontendDir
+}
+$fullCmd = "$DevCmd $Port"
+Write-Host "Starting dev server: $fullCmd" -ForegroundColor Cyan
+# Launch in current console; Ctrl+C to stop
+cmd /c $fullCmd
