@@ -2,7 +2,9 @@ import React, { useState } from 'react'
 import { Upload, Plus, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import BillTracker from './components/BillTracker'
 import PaystubUploader from './components/PaystubUploader'
+import StatementUploader from './components/StatementUploader'
 import Calendar from './components/Calendar'
+import { ParsedTransaction } from './utils/bankStatementParser'
 import './App.css'
 
 interface Debt {
@@ -169,6 +171,32 @@ function App() {
     setCalendarEvents(prev => prev.filter(event => event.id !== eventId))
   }
 
+  const handleTransactionsParsed = (parsedTransactions: ParsedTransaction[]) => {
+    // Convert parsed transactions to our transaction format
+    const newTransactions = parsedTransactions.map(tx => ({
+      date: tx.date,
+      description: tx.description,
+      amount: tx.amount
+    }))
+    
+    // Replace existing transactions with parsed data
+    setTransactions(newTransactions)
+    setParsedCount(newTransactions.length)
+    
+    // Auto-discover bills from parsed transactions
+    setTimeout(() => {
+      handleDiscoverBills()
+    }, 500)
+  }
+
+  const handleDataReplaced = () => {
+    // Clear existing data before replacement
+    setTransactions([])
+    setParsedCount(0)
+    
+    // Show user feedback
+    console.log('Existing transaction data cleared for replacement')
+  }
   return (
     <div className="app">
       <div className="container">
@@ -202,35 +230,18 @@ function App() {
           <div className="main-grid">
           {/* Upload Bank Statement */}
           <div className="card upload-card">
-            <div className="card-header">
-              <h2>Upload Bank Statement</h2>
-              <div className="file-types">CSV OFX QFX PDF</div>
-            </div>
-            <div className="upload-zone">
-              <Upload className="upload-icon" />
-              <p><strong>Drag & drop</strong> your statement here or <button className="browse-btn">Browse</button></p>
-              <p className="upload-subtitle">We auto-detect common headers and OFX tags.</p>
-              <label className="checkbox-label">
-                <input type="checkbox" defaultChecked />
-                <span className="checkmark"></span>
-                Save to database after parse
-              </label>
-              <input
-                type="file"
-                accept=".csv,.ofx,.qfx,.pdf"
-                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-                className="file-input"
-              />
-            </div>
+            <StatementUploader 
+              onTransactionsParsed={handleTransactionsParsed}
+              onDataReplaced={handleDataReplaced}
+            />
             
             {parsedCount > 0 && (
               <div className="upload-results">
-                <button className="upload-another">+ Upload another statement</button>
                 <div className="parsed-info">
-                  <p>Parsed <strong>{parsedCount}</strong> transactions</p>
-                  <p className="columns-info">Columns: date description amount</p>
+                  <p>✅ Successfully parsed <strong>{parsedCount}</strong> transactions</p>
+                  <p className="columns-info">Data integrated into Bill Tracker and Calendar</p>
                   <details>
-                    <summary>▶ Sample rows</summary>
+                    <summary>▶ Sample transactions</summary>
                     <div className="sample-rows">
                       {transactions.slice(0, 3).map((tx, i) => (
                         <div key={i} className="sample-row">
