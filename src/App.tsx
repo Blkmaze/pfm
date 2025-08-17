@@ -164,37 +164,9 @@ function App() {
       alert('Please upload bank statements first to discover bills.')
     }
   }
-  const renderCalendar = () => {
+
   const handleDeleteEvent = (eventId: string) => {
     setCalendarEvents(prev => prev.filter(event => event.id !== eventId))
-  }
-
-    const daysInMonth = 31
-    const startDay = 6 // August 2025 starts on Friday (6)
-    const days = []
-
-    // Empty cells for days before month starts
-    for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>)
-    }
-
-    // Days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const events = calendarEvents.filter(event => event.date === day)
-      days.push(
-        <div key={day} className="calendar-day">
-          <span className="day-number">{day}</span>
-          {events.map((event, index) => (
-            <div key={index} className={`calendar-event ${event.type}`}>
-              {event.type === 'bill' ? `Bill: ${event.description} $${event.amount}` : 
-               `${event.description} $${event.amount}`}
-            </div>
-          ))}
-        </div>
-      )
-    }
-
-    return days
   }
 
   return (
