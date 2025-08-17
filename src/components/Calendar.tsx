@@ -19,7 +19,7 @@ interface CalendarProps {
 }
 
 export default function Calendar({ events, onAddPayday, onDeleteEvent, onDiscoverBills, transactions }: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState('2025-08')
+  const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 17)) // August 17, 2025
   const [showAddPayday, setShowAddPayday] = useState(false)
   const [selectedDate, setSelectedDate] = useState<number | null>(null)
   const [showEventDetails, setShowEventDetails] = useState(false)
@@ -35,30 +35,17 @@ export default function Calendar({ events, onAddPayday, onDeleteEvent, onDiscove
   ]
 
   const getCurrentMonthName = () => {
-    const [year, month] = currentMonth.split('-')
-    return `${monthNames[parseInt(month) - 1]} ${year}`
+    return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
   }
 
   const navigateMonth = (direction: 'prev' | 'next') => {
-    const [year, month] = currentMonth.split('-').map(Number)
-    let newYear = year
-    let newMonth = month
-
+    const newDate = new Date(currentDate)
     if (direction === 'next') {
-      newMonth += 1
-      if (newMonth > 12) {
-        newMonth = 1
-        newYear += 1
-      }
+      newDate.setMonth(newDate.getMonth() + 1)
     } else {
-      newMonth -= 1
-      if (newMonth < 1) {
-        newMonth = 12
-        newYear -= 1
-      }
+      newDate.setMonth(newDate.getMonth() - 1)
     }
-
-    setCurrentMonth(`${newYear}-${newMonth.toString().padStart(2, '0')}`)
+    setCurrentDate(newDate)
   }
 
   const handleAddPayday = () => {
@@ -94,12 +81,14 @@ export default function Calendar({ events, onAddPayday, onDeleteEvent, onDiscove
   }
 
   const renderCalendar = () => {
-    const daysInMonth = 31
-    const startDay = 1 // August 2025 starts on Friday, so 18th is Monday (1)
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const firstDay = new Date(year, month, 1).getDay()
     const days = []
 
     // Empty cells for days before month starts
-    for (let i = 0; i < startDay; i++) {
+    for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>)
     }
 
