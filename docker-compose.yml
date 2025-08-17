@@ -8,14 +8,22 @@ services:
       POSTGRES_DB: pfm
     ports: ["5432:5432"]
     volumes: [pfmdb:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pfm"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   api:
     build: ./apps/api
     environment:
       JWT_SECRET: change-me
       NODE_ENV: production
+      DATABASE_URL: postgresql://pfm:pfm@db:5432/pfm
     ports: ["4000:4000"]
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - ./apps/api/uploads:/app/uploads
 
@@ -24,7 +32,8 @@ services:
     environment:
       VITE_API_URL: http://localhost:4000
     ports: ["5173:80"]
-    depends_on: [api]
+    depends_on:
+      - api
 
 volumes:
   pfmdb:
