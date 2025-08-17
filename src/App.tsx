@@ -46,15 +46,6 @@ function App() {
     { id: '5', date: 20, type: 'bill', description: 'Electric', amount: 140 }
   ])
 
-  // Mock calendar events
-  const calendarEvents: CalendarEvent[] = [
-    { date: 1, type: 'bill', description: 'Rent', amount: 1200 },
-    { date: 10, type: 'bill', description: 'Internet', amount: 80 },
-    { date: 16, type: 'payday', description: 'Payday', amount: 1750 },
-    { date: 19, type: 'payday', description: 'Payday', amount: 2100 },
-    { date: 20, type: 'bill', description: 'Electric', amount: 140 }
-  ]
-
   const handleFileUpload = (file: File) => {
     // Simulate parsing
     setTimeout(() => {
