@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Upload, Plus, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import BillTracker from './components/BillTracker'
+import PaystubUploader from './components/PaystubUploader'
 import './App.css'
 
 interface Debt {
@@ -35,6 +36,7 @@ function App() {
   const [paystubData, setPaystubData] = useState({ date: '', netPay: '' })
   const [savedPaystub, setSavedPaystub] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'bills' | 'debts'>('overview')
+  const [savedPaystubs, setSavedPaystubs] = useState<any[]>([])
 
   // Mock calendar events
   const calendarEvents: CalendarEvent[] = [
@@ -91,6 +93,11 @@ function App() {
   const savePaystub = () => {
     setSavedPaystub(true)
     setTimeout(() => setSavedPaystub(false), 2000)
+  }
+
+  const handlePaystubSaved = (paystubData: any) => {
+    setSavedPaystubs(prev => [...prev, { ...paystubData, id: Date.now() }])
+    console.log('Paystub saved:', paystubData)
   }
 
   const renderCalendar = () => {
@@ -198,33 +205,8 @@ function App() {
           </div>
 
           {/* Add Paystub Screenshot */}
-          <div className="card paystub-card">
-            <div className="card-header">
-              <h2>Add Paystub Screenshot</h2>
-              <div className="file-types">JPG PNG</div>
-            </div>
-            <div className="upload-zone">
-              <Upload className="upload-icon" />
-              <p><strong>Drag & drop</strong> paystub here or <button className="browse-btn">Browse</button></p>
-              <div className="paystub-form">
-                <label>Pay date</label>
-                <input 
-                  type="text" 
-                  placeholder="mm/dd/yyyy"
-                  value={paystubData.date}
-                  onChange={(e) => setPaystubData({...paystubData, date: e.target.value})}
-                />
-                <label>Net pay ($)</label>
-                <input 
-                  type="number"
-                  value={paystubData.netPay}
-                  onChange={(e) => setPaystubData({...paystubData, netPay: e.target.value})}
-                />
-                <button className="save-paystub" onClick={savePaystub}>Save Paystub</button>
-              </div>
-              <p className="upload-subtitle">We'll store the file and create a payday event.</p>
-            </div>
-            {savedPaystub && <p className="saved-message">Saved File stored.</p>}
+          <div className="card">
+            <PaystubUploader onPaystubSaved={handlePaystubSaved} />
           </div>
 
           {/* Debt Payoff Planner */}
