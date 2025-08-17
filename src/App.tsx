@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Upload, Calculator, TrendingDown, DollarSign, Clock, Target } from 'lucide-react'
+import { Upload, Plus, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import './App.css'
 
 interface Debt {
@@ -10,33 +10,63 @@ interface Debt {
   minimumPayment: number
 }
 
-interface PayoffResult {
-  totalMonths: number
-  totalInterest: number
-  monthlyPayment: number
-  payoffOrder: Array<{
-    name: string
-    months: number
-    totalPaid: number
-  }>
+interface Transaction {
+  date: string
+  description: string
+  amount: number
+}
+
+interface CalendarEvent {
+  date: number
+  type: 'bill' | 'payday'
+  description: string
+  amount: number
 }
 
 function App() {
   const [debts, setDebts] = useState<Debt[]>([])
-  const [monthlyBudget, setMonthlyBudget] = useState<number>(500)
-  const [strategy, setStrategy] = useState<'avalanche' | 'snowball'>('avalanche')
-  const [payoffResult, setPayoffResult] = useState<PayoffResult | null>(null)
-  const [dragActive, setDragActive] = useState(false)
+  const [monthlyExtra, setMonthlyExtra] = useState(200)
+  const [method, setMethod] = useState<'snowball' | 'avalanche'>('snowball')
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [parsedCount, setParsedCount] = useState(0)
+  const [showAddDebt, setShowAddDebt] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState('2025-08')
+  const [paystubData, setPaystubData] = useState({ date: '', netPay: '' })
+  const [savedPaystub, setSavedPaystub] = useState(false)
+
+  // Mock calendar events
+  const calendarEvents: CalendarEvent[] = [
+    { date: 1, type: 'bill', description: 'Rent', amount: 1200 },
+    { date: 10, type: 'bill', description: 'Internet', amount: 80 },
+    { date: 16, type: 'payday', description: 'Payday', amount: 1750 },
+    { date: 19, type: 'payday', description: 'Payday', amount: 2100 },
+    { date: 20, type: 'bill', description: 'Electric', amount: 140 }
+  ]
+
+  const handleFileUpload = (file: File) => {
+    // Simulate parsing
+    setTimeout(() => {
+      const mockTransactions = [
+        { date: '2025-01-15', description: 'Credit Card Payment', amount: -150.00 },
+        { date: '2025-01-14', description: 'Grocery Store', amount: -85.32 },
+        { date: '2025-01-13', description: 'Gas Station', amount: -45.20 },
+        { date: '2025-01-12', description: 'Restaurant', amount: -32.50 }
+      ]
+      setTransactions(mockTransactions)
+      setParsedCount(49)
+    }, 1000)
+  }
 
   const addDebt = () => {
     const newDebt: Debt = {
       id: Date.now().toString(),
-      name: `Credit Card ${debts.length + 1}`,
-      balance: 1000,
-      apr: 18.99,
-      minimumPayment: 25
+      name: '',
+      balance: 0,
+      apr: 0,
+      minimumPayment: 0
     }
     setDebts([...debts, newDebt])
+    setShowAddDebt(true)
   }
 
   const updateDebt = (id: string, field: keyof Debt, value: string | number) => {
@@ -45,274 +75,227 @@ function App() {
     ))
   }
 
-  const removeDebt = (id: string) => {
-    setDebts(debts.filter(debt => debt.id !== id))
+  const calculatePlan = () => {
+    // Mock calculation
+    console.log('Calculating payoff plan...')
   }
 
-  const calculatePayoff = () => {
-    if (debts.length === 0) return
+  const savePaystub = () => {
+    setSavedPaystub(true)
+    setTimeout(() => setSavedPaystub(false), 2000)
+  }
 
-    const totalMinimum = debts.reduce((sum, debt) => sum + debt.minimumPayment, 0)
-    const extraPayment = Math.max(0, monthlyBudget - totalMinimum)
+  const renderCalendar = () => {
+    const daysInMonth = 31
+    const startDay = 6 // August 2025 starts on Friday (6)
+    const days = []
 
-    // Sort debts based on strategy
-    const sortedDebts = [...debts].sort((a, b) => {
-      if (strategy === 'avalanche') {
-        return b.apr - a.apr // Highest APR first
-      } else {
-        return a.balance - b.balance // Smallest balance first
-      }
-    })
+    // Empty cells for days before month starts
+    for (let i = 0; i < startDay; i++) {
+      days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>)
+    }
 
-    let totalInterest = 0
-    let totalMonths = 0
-    const payoffOrder: PayoffResult['payoffOrder'] = []
-
-    // Simulate payoff (simplified calculation)
-    sortedDebts.forEach((debt, index) => {
-      const monthlyRate = debt.apr / 100 / 12
-      const payment = debt.minimumPayment + (index === 0 ? extraPayment : 0)
-      
-      if (payment <= debt.balance * monthlyRate) {
-        // Payment too low, would never pay off
-        return
-      }
-
-      const months = Math.ceil(
-        -Math.log(1 - (debt.balance * monthlyRate) / payment) / Math.log(1 + monthlyRate)
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const events = calendarEvents.filter(event => event.date === day)
+      days.push(
+        <div key={day} className="calendar-day">
+          <span className="day-number">{day}</span>
+          {events.map((event, index) => (
+            <div key={index} className={`calendar-event ${event.type}`}>
+              {event.type === 'bill' ? `Bill: ${event.description} $${event.amount}` : 
+               `${event.description} $${event.amount}`}
+            </div>
+          ))}
+        </div>
       )
-      
-      const totalPaid = payment * months
-      const interest = totalPaid - debt.balance
-
-      totalInterest += interest
-      totalMonths = Math.max(totalMonths, months)
-      
-      payoffOrder.push({
-        name: debt.name,
-        months,
-        totalPaid
-      })
-    })
-
-    setPayoffResult({
-      totalMonths,
-      totalInterest,
-      monthlyPayment: monthlyBudget,
-      payoffOrder
-    })
-  }
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true)
-    } else if (e.type === 'dragleave') {
-      setDragActive(false)
     }
-  }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-    
-    const files = e.dataTransfer.files
-    if (files && files[0]) {
-      handleFileUpload(files[0])
-    }
-  }
-
-  const handleFileUpload = (file: File) => {
-    // Simulate file processing
-    console.log('Processing file:', file.name)
-    
-    // Mock data extraction
-    setTimeout(() => {
-      const mockDebts: Debt[] = [
-        {
-          id: Date.now().toString(),
-          name: 'Chase Freedom',
-          balance: 2500,
-          apr: 22.99,
-          minimumPayment: 75
-        },
-        {
-          id: (Date.now() + 1).toString(),
-          name: 'Capital One',
-          balance: 1800,
-          apr: 19.99,
-          minimumPayment: 50
-        }
-      ]
-      setDebts(mockDebts)
-    }, 1000)
+    return days
   }
 
   return (
     <div className="app">
       <div className="container">
         <header className="header">
-          <div className="header-content">
-            <DollarSign className="header-icon" />
-            <div>
-              <h1>Personal Finance Manager</h1>
-              <p>Import statements, manage debts, and create your payoff plan</p>
-            </div>
-          </div>
+          <h1>Personal Finance Manager</h1>
+          <p>Uploads, parsing, calendar, and a no-nonsense debt attack plan.</p>
         </header>
 
-        {/* File Upload Section */}
-        <div className="card">
-          <div className="card-header">
-            <Upload className="card-icon" />
-            <h2>Import Financial Data</h2>
-          </div>
-          <div 
-            className={`upload-zone ${dragActive ? 'drag-active' : ''}`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-          >
-            <Upload className="upload-icon" />
-            <p>Drag & drop your bank statements or credit card bills</p>
-            <p className="upload-subtitle">Supports CSV files and images (JPG, PNG)</p>
-            <input
-              type="file"
-              accept=".csv,image/*"
-              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-              className="file-input"
-            />
-            <button className="upload-button">Choose Files</button>
-          </div>
-        </div>
-
-        {/* Debt Management Section */}
-        <div className="card">
-          <div className="card-header">
-            <TrendingDown className="card-icon" />
-            <h2>Debt Management</h2>
-          </div>
-          
-          <button onClick={addDebt} className="add-debt-button">
-            + Add Debt
-          </button>
-
-          <div className="debts-list">
-            {debts.map((debt) => (
-              <div key={debt.id} className="debt-item">
-                <div className="debt-fields">
-                  <input
-                    type="text"
-                    value={debt.name}
-                    onChange={(e) => updateDebt(debt.id, 'name', e.target.value)}
-                    placeholder="Debt name"
-                    className="debt-input debt-name"
-                  />
-                  <input
-                    type="number"
-                    value={debt.balance}
-                    onChange={(e) => updateDebt(debt.id, 'balance', parseFloat(e.target.value) || 0)}
-                    placeholder="Balance"
-                    className="debt-input"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={debt.apr}
-                    onChange={(e) => updateDebt(debt.id, 'apr', parseFloat(e.target.value) || 0)}
-                    placeholder="APR %"
-                    className="debt-input"
-                  />
-                  <input
-                    type="number"
-                    value={debt.minimumPayment}
-                    onChange={(e) => updateDebt(debt.id, 'minimumPayment', parseFloat(e.target.value) || 0)}
-                    placeholder="Min Payment"
-                    className="debt-input"
-                  />
-                </div>
-                <button
-                  onClick={() => removeDebt(debt.id)}
-                  className="remove-debt-button"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Payoff Planning Section */}
-        <div className="card">
-          <div className="card-header">
-            <Calculator className="card-icon" />
-            <h2>Payoff Strategy</h2>
-          </div>
-
-          <div className="strategy-controls">
-            <div className="control-group">
-              <label>Monthly Budget:</label>
+        <div className="main-grid">
+          {/* Upload Bank Statement */}
+          <div className="card upload-card">
+            <div className="card-header">
+              <h2>Upload Bank Statement</h2>
+              <div className="file-types">CSV OFX QFX PDF</div>
+            </div>
+            <div className="upload-zone">
+              <Upload className="upload-icon" />
+              <p><strong>Drag & drop</strong> your statement here or <button className="browse-btn">Browse</button></p>
+              <p className="upload-subtitle">We auto-detect common headers and OFX tags.</p>
+              <label className="checkbox-label">
+                <input type="checkbox" defaultChecked />
+                <span className="checkmark"></span>
+                Save to database after parse
+              </label>
               <input
-                type="number"
-                value={monthlyBudget}
-                onChange={(e) => setMonthlyBudget(parseFloat(e.target.value) || 0)}
-                className="budget-input"
+                type="file"
+                accept=".csv,.ofx,.qfx,.pdf"
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                className="file-input"
               />
             </div>
-
-            <div className="control-group">
-              <label>Strategy:</label>
-              <select
-                value={strategy}
-                onChange={(e) => setStrategy(e.target.value as 'avalanche' | 'snowball')}
-                className="strategy-select"
-              >
-                <option value="avalanche">Debt Avalanche (Highest APR First)</option>
-                <option value="snowball">Debt Snowball (Smallest Balance First)</option>
-              </select>
-            </div>
-
-            <button onClick={calculatePayoff} className="calculate-button">
-              <Target className="button-icon" />
-              Calculate Payoff Plan
-            </button>
+            
+            {parsedCount > 0 && (
+              <div className="upload-results">
+                <button className="upload-another">+ Upload another statement</button>
+                <div className="parsed-info">
+                  <p>Parsed <strong>{parsedCount}</strong> transactions</p>
+                  <p className="columns-info">Columns: date description amount</p>
+                  <details>
+                    <summary>▶ Sample rows</summary>
+                    <div className="sample-rows">
+                      {transactions.slice(0, 3).map((tx, i) => (
+                        <div key={i} className="sample-row">
+                          {tx.date} | {tx.description} | ${Math.abs(tx.amount)}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              </div>
+            )}
           </div>
 
-          {payoffResult && (
-            <div className="results">
-              <div className="results-summary">
-                <div className="result-item">
-                  <Clock className="result-icon" />
-                  <div>
-                    <div className="result-value">{payoffResult.totalMonths}</div>
-                    <div className="result-label">Months to Pay Off</div>
-                  </div>
-                </div>
-                <div className="result-item">
-                  <DollarSign className="result-icon" />
-                  <div>
-                    <div className="result-value">${payoffResult.totalInterest.toFixed(2)}</div>
-                    <div className="result-label">Total Interest</div>
-                  </div>
-                </div>
+          {/* Add Paystub Screenshot */}
+          <div className="card paystub-card">
+            <div className="card-header">
+              <h2>Add Paystub Screenshot</h2>
+              <div className="file-types">JPG PNG</div>
+            </div>
+            <div className="upload-zone">
+              <Upload className="upload-icon" />
+              <p><strong>Drag & drop</strong> paystub here or <button className="browse-btn">Browse</button></p>
+              <div className="paystub-form">
+                <label>Pay date</label>
+                <input 
+                  type="text" 
+                  placeholder="mm/dd/yyyy"
+                  value={paystubData.date}
+                  onChange={(e) => setPaystubData({...paystubData, date: e.target.value})}
+                />
+                <label>Net pay ($)</label>
+                <input 
+                  type="number"
+                  value={paystubData.netPay}
+                  onChange={(e) => setPaystubData({...paystubData, netPay: e.target.value})}
+                />
+                <button className="save-paystub" onClick={savePaystub}>Save Paystub</button>
               </div>
+              <p className="upload-subtitle">We'll store the file and create a payday event.</p>
+            </div>
+            {savedPaystub && <p className="saved-message">Saved File stored.</p>}
+          </div>
 
-              <div className="payoff-order">
-                <h3>Payoff Order:</h3>
-                {payoffResult.payoffOrder.map((item, index) => (
-                  <div key={index} className="payoff-item">
-                    <span className="payoff-rank">{index + 1}</span>
-                    <span className="payoff-name">{item.name}</span>
-                    <span className="payoff-months">{item.months} months</span>
-                    <span className="payoff-total">${item.totalPaid.toFixed(2)}</span>
-                  </div>
-                ))}
+          {/* Debt Payoff Planner */}
+          <div className="card debt-card">
+            <div className="card-header">
+              <h2>Debt Payoff Planner</h2>
+              <div className="method-badge">Snowball Avalanche</div>
+            </div>
+            
+            <div className="debt-controls">
+              <div className="control-group">
+                <label>Method</label>
+                <select 
+                  value={method} 
+                  onChange={(e) => setMethod(e.target.value as 'snowball' | 'avalanche')}
+                  className="method-select"
+                >
+                  <option value="snowball">Snowball (smallest balance first)</option>
+                  <option value="avalanche">Avalanche (highest APR first)</option>
+                </select>
+              </div>
+              
+              <div className="control-group">
+                <label>Monthly Extra ($)</label>
+                <input 
+                  type="number" 
+                  value={monthlyExtra}
+                  onChange={(e) => setMonthlyExtra(Number(e.target.value))}
+                  className="extra-input"
+                />
+                <button className="calculate-btn" onClick={calculatePlan}>Calculate Plan</button>
               </div>
             </div>
-          )}
+
+            <div className="debt-section">
+              <p>Enter your debts:</p>
+              <div className="debt-headers">
+                <span>Name</span>
+                <span>Balance</span>
+                <span>APR %</span>
+                <span>Min/mo</span>
+              </div>
+              
+              {debts.map((debt) => (
+                <div key={debt.id} className="debt-row">
+                  <input 
+                    type="text"
+                    placeholder="Debt name"
+                    value={debt.name}
+                    onChange={(e) => updateDebt(debt.id, 'name', e.target.value)}
+                  />
+                  <input 
+                    type="number"
+                    placeholder="0"
+                    value={debt.balance || ''}
+                    onChange={(e) => updateDebt(debt.id, 'balance', Number(e.target.value))}
+                  />
+                  <input 
+                    type="number"
+                    placeholder="0"
+                    value={debt.apr || ''}
+                    onChange={(e) => updateDebt(debt.id, 'apr', Number(e.target.value))}
+                  />
+                  <input 
+                    type="number"
+                    placeholder="0"
+                    value={debt.minimumPayment || ''}
+                    onChange={(e) => updateDebt(debt.id, 'minimumPayment', Number(e.target.value))}
+                  />
+                </div>
+              ))}
+              
+              <button className="add-debt-btn" onClick={addDebt}>
+                + Add Debt
+              </button>
+            </div>
+          </div>
+
+          {/* Calendar */}
+          <div className="card calendar-card">
+            <div className="calendar-header">
+              <h2>Calendar</h2>
+              <div className="calendar-controls">
+                <button className="calendar-nav"><ChevronLeft size={16} /></button>
+                <span className="current-month">{currentMonth}</span>
+                <button className="calendar-nav"><ChevronRight size={16} /></button>
+                <button className="add-payday">+ Add Payday</button>
+                <button className="discover-bills">Discover Bills</button>
+              </div>
+            </div>
+            <div className="calendar-grid">
+              <div className="calendar-weekdays">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="weekday">{day}</div>
+                ))}
+              </div>
+              <div className="calendar-days">
+                {renderCalendar()}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
