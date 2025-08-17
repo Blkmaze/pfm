@@ -13,14 +13,17 @@ interface CalendarEvent {
 interface CalendarProps {
   events: CalendarEvent[]
   onAddPayday: (date: number, amount: number, description: string) => void
+  onDeleteEvent: (eventId: string) => void
   onDiscoverBills: () => void
   transactions: any[]
 }
 
-export default function Calendar({ events, onAddPayday, onDiscoverBills, transactions }: CalendarProps) {
+export default function Calendar({ events, onAddPayday, onDeleteEvent, onDiscoverBills, transactions }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState('2025-08')
   const [showAddPayday, setShowAddPayday] = useState(false)
   const [selectedDate, setSelectedDate] = useState<number | null>(null)
+  const [showEventDetails, setShowEventDetails] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [paydayForm, setPaydayForm] = useState({
     amount: '',
     description: 'Payday'
@@ -76,6 +79,20 @@ export default function Calendar({ events, onAddPayday, onDiscoverBills, transac
     setShowAddPayday(true)
   }
 
+  const handleEventClick = (event: CalendarEvent, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSelectedEvent(event)
+    setShowEventDetails(true)
+  }
+
+  const handleDeleteEvent = () => {
+    if (selectedEvent) {
+      onDeleteEvent(selectedEvent.id)
+      setShowEventDetails(false)
+      setSelectedEvent(null)
+    }
+  }
+
   const renderCalendar = () => {
     const daysInMonth = 31
     const startDay = 6 // August 2025 starts on Friday (6)
@@ -97,7 +114,12 @@ export default function Calendar({ events, onAddPayday, onDiscoverBills, transac
         >
           <span className="day-number">{day}</span>
           {dayEvents.map((event) => (
-            <div key={event.id} className={`calendar-event ${event.type}`}>
+            <div 
+              key={event.id} 
+              className={`calendar-event ${event.type}`}
+              onClick={(e) => handleEventClick(event, e)}
+              title="Click to view/delete this event"
+            >
               {event.type === 'bill' ? `Bill: ${event.description} $${event.amount}` : 
                `${event.description} $${event.amount}`}
             </div>
@@ -181,6 +203,49 @@ export default function Calendar({ events, onAddPayday, onDiscoverBills, transac
               </button>
               <button onClick={handleAddPayday} className="save-btn">
                 Add Payday
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event Details/Delete Modal */}
+      {showEventDetails && selectedEvent && (
+        <div className="modal-overlay" onClick={() => setShowEventDetails(false)}>
+          <div className="modal-content event-details-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Event Details</h3>
+            <div className="event-info">
+              <div className="info-row">
+                <label>Type:</label>
+                <span className={`event-type-badge ${selectedEvent.type}`}>
+                  {selectedEvent.type === 'payday' ? 'Payday' : 'Bill'}
+                </span>
+              </div>
+              <div className="info-row">
+                <label>Description:</label>
+                <span>{selectedEvent.description}</span>
+              </div>
+              <div className="info-row">
+                <label>Amount:</label>
+                <span>${selectedEvent.amount.toLocaleString()}</span>
+              </div>
+              <div className="info-row">
+                <label>Date:</label>
+                <span>{getCurrentMonthName()} {selectedEvent.date}</span>
+              </div>
+            </div>
+            
+            <div className="warning-message">
+              <p>⚠️ <strong>Deletion Warning:</strong></p>
+              <p>This will permanently remove this {selectedEvent.type} entry from your calendar. This action cannot be undone.</p>
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={() => setShowEventDetails(false)} className="cancel-btn">
+                Cancel
+              </button>
+              <button onClick={handleDeleteEvent} className="delete-btn">
+                Delete Event
               </button>
             </div>
           </div>
@@ -329,6 +394,12 @@ export default function Calendar({ events, onAddPayday, onDiscoverBills, transac
           border-radius: 0.25rem;
           font-size: 0.75rem;
           font-weight: 500;
+          cursor: pointer;
+          transition: opacity 0.2s ease;
+        }
+
+        .calendar-event:hover {
+          opacity: 0.8;
         }
 
         .calendar-event.bill {
@@ -429,6 +500,84 @@ export default function Calendar({ events, onAddPayday, onDiscoverBills, transac
 
         .save-btn:hover {
           background: #0284c7;
+        }
+
+        .event-details-modal {
+          min-width: 450px;
+        }
+
+        .event-info {
+          margin-bottom: 1.5rem;
+        }
+
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.75rem 0;
+          border-bottom: 1px solid #334155;
+        }
+
+        .info-row:last-child {
+          border-bottom: none;
+        }
+
+        .info-row label {
+          font-weight: 600;
+          color: #cbd5e1;
+        }
+
+        .info-row span {
+          color: #f8fafc;
+        }
+
+        .event-type-badge {
+          padding: 0.25rem 0.75rem;
+          border-radius: 1rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: white;
+        }
+
+        .event-type-badge.payday {
+          background: #10b981;
+        }
+
+        .event-type-badge.bill {
+          background: #dc2626;
+        }
+
+        .warning-message {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .warning-message p {
+          margin: 0.25rem 0;
+          color: #fca5a5;
+          font-size: 0.875rem;
+        }
+
+        .warning-message strong {
+          color: #ef4444;
+        }
+
+        .delete-btn {
+          background: #dc2626;
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 0.375rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .delete-btn:hover {
+          background: #b91c1c;
         }
 
         @media (max-width: 768px) {

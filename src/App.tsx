@@ -165,6 +165,10 @@ function App() {
     }
   }
   const renderCalendar = () => {
+  const handleDeleteEvent = (eventId: string) => {
+    setCalendarEvents(prev => prev.filter(event => event.id !== eventId))
+  }
+
     const daysInMonth = 31
     const startDay = 6 // August 2025 starts on Friday (6)
     const days = []
@@ -353,6 +357,7 @@ function App() {
           <Calendar 
             events={calendarEvents}
             onAddPayday={handleAddPayday}
+            onDeleteEvent={handleDeleteEvent}
             onDiscoverBills={handleDiscoverBills}
             transactions={transactions}
           />
