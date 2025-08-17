@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Upload, Plus, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import BillTracker from './components/BillTracker'
 import PaystubUploader from './components/PaystubUploader'
+import Calendar from './components/Calendar'
 import './App.css'
 
 interface Debt {
@@ -37,6 +38,13 @@ function App() {
   const [savedPaystub, setSavedPaystub] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'bills' | 'debts'>('overview')
   const [savedPaystubs, setSavedPaystubs] = useState<any[]>([])
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([
+    { id: '1', date: 1, type: 'bill', description: 'Rent', amount: 1200 },
+    { id: '2', date: 10, type: 'bill', description: 'Internet', amount: 80 },
+    { id: '3', date: 16, type: 'payday', description: 'Payday', amount: 1750 },
+    { id: '4', date: 19, type: 'payday', description: 'Payday', amount: 2100 },
+    { id: '5', date: 20, type: 'bill', description: 'Electric', amount: 140 }
+  ])
 
   // Mock calendar events
   const calendarEvents: CalendarEvent[] = [
@@ -97,9 +105,74 @@ function App() {
 
   const handlePaystubSaved = (paystubData: any) => {
     setSavedPaystubs(prev => [...prev, { ...paystubData, id: Date.now() }])
+    
+    // Auto-add payday event from paystub data
+    if (paystubData.payDate && paystubData.netPay) {
+      const payDate = new Date(paystubData.payDate)
+      const day = payDate.getDate()
+      const newPaydayEvent: CalendarEvent = {
+        id: `payday-${Date.now()}`,
+        date: day,
+        type: 'payday',
+        description: paystubData.employer ? `${paystubData.employer} Payday` : 'Payday',
+        amount: parseFloat(paystubData.netPay)
+      }
+      setCalendarEvents(prev => [...prev, newPaydayEvent])
+    }
+    
     console.log('Paystub saved:', paystubData)
   }
 
+  const handleAddPayday = (date: number, amount: number, description: string) => {
+    const newEvent: CalendarEvent = {
+      id: `payday-${Date.now()}`,
+      date,
+      type: 'payday',
+      description,
+      amount
+    }
+    setCalendarEvents(prev => [...prev, newEvent])
+  }
+
+  const handleDiscoverBills = () => {
+    // Simulate bill discovery from transactions
+    if (transactions.length > 0) {
+      const discoveredBills: CalendarEvent[] = []
+      
+      // Extract bills from transactions and add to calendar
+      transactions.forEach((tx, index) => {
+        if (tx.amount < 0 && Math.abs(tx.amount) > 20) { // Negative amounts over $20
+          const txDate = new Date(tx.date)
+          const day = txDate.getDate()
+          
+          // Avoid duplicates
+          const exists = calendarEvents.some(event => 
+            event.date === day && 
+            event.description.toLowerCase().includes(tx.description.toLowerCase().split(' ')[0])
+          )
+          
+          if (!exists && discoveredBills.length < 5) { // Limit to 5 new bills
+            discoveredBills.push({
+              id: `discovered-${Date.now()}-${index}`,
+              date: day,
+              type: 'bill',
+              description: tx.description.split(' ').slice(0, 2).join(' '), // First 2 words
+              amount: Math.abs(tx.amount)
+            })
+          }
+        }
+      })
+      
+      if (discoveredBills.length > 0) {
+        setCalendarEvents(prev => [...prev, ...discoveredBills])
+        alert(`Discovered ${discoveredBills.length} new bills from your transactions!`)
+      } else {
+        alert('No new bills discovered. Upload bank statements to find more bills.')
+      }
+    } else {
+      alert('Please upload bank statements first to discover bills.')
+    }
+  }
   const renderCalendar = () => {
     const daysInMonth = 31
     const startDay = 6 // August 2025 starts on Friday (6)
@@ -286,28 +359,12 @@ function App() {
           </div>
 
           {/* Calendar */}
-          <div className="card calendar-card">
-            <div className="calendar-header">
-              <h2>Calendar</h2>
-              <div className="calendar-controls">
-                <button className="calendar-nav"><ChevronLeft size={16} /></button>
-                <span className="current-month">{currentMonth}</span>
-                <button className="calendar-nav"><ChevronRight size={16} /></button>
-                <button className="add-payday">+ Add Payday</button>
-                <button className="discover-bills">Discover Bills</button>
-              </div>
-            </div>
-            <div className="calendar-grid">
-              <div className="calendar-weekdays">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="weekday">{day}</div>
-                ))}
-              </div>
-              <div className="calendar-days">
-                {renderCalendar()}
-              </div>
-            </div>
-          </div>
+          <Calendar 
+            events={calendarEvents}
+            onAddPayday={handleAddPayday}
+            onDiscoverBills={handleDiscoverBills}
+            transactions={transactions}
+          />
         </div>
         )}
 
