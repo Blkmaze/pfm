@@ -38,14 +38,53 @@ body {
   color: #94a3b8;
 }
 
+.tab-navigation {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding: 0.5rem;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 0.75rem;
+  border: 1px solid #334155;
+}
+
+.tab-btn {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: #cbd5e1;
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.tab-btn.active {
+  background: #0ea5e9;
+  color: white;
+}
+
 .main-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   grid-template-areas: 
     "upload paystub"
-    "debt debt"
     "calendar calendar";
+}
+
+.bills-section {
+  margin-top: 2rem;
+}
+
+.debt-section-full {
+  margin-top: 2rem;
 }
 
 .card {

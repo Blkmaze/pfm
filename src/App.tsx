@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Upload, Plus, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import BillTracker from './components/BillTracker'
 import './App.css'
 
 interface Debt {
@@ -33,6 +34,7 @@ function App() {
   const [currentMonth, setCurrentMonth] = useState('2025-08')
   const [paystubData, setPaystubData] = useState({ date: '', netPay: '' })
   const [savedPaystub, setSavedPaystub] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'bills' | 'debts'>('overview')
 
   // Mock calendar events
   const calendarEvents: CalendarEvent[] = [
@@ -47,13 +49,19 @@ function App() {
     // Simulate parsing
     setTimeout(() => {
       const mockTransactions = [
-        { date: '2025-01-15', description: 'Credit Card Payment', amount: -150.00 },
-        { date: '2025-01-14', description: 'Grocery Store', amount: -85.32 },
-        { date: '2025-01-13', description: 'Gas Station', amount: -45.20 },
-        { date: '2025-01-12', description: 'Restaurant', amount: -32.50 }
+        { date: '2025-01-15', description: 'PG&E Electric Bill Payment', amount: -125.50 },
+        { date: '2025-01-14', description: 'Netflix Subscription', amount: -15.99 },
+        { date: '2025-01-13', description: 'Verizon Wireless Payment', amount: -89.99 },
+        { date: '2025-01-12', description: 'State Farm Insurance', amount: -156.00 },
+        { date: '2025-01-11', description: 'Rent Payment - Property Management', amount: -1200.00 },
+        { date: '2025-01-10', description: 'Chase Credit Card Payment', amount: -250.00 },
+        { date: '2025-01-09', description: 'Spotify Premium', amount: -9.99 },
+        { date: '2025-01-08', description: 'Water Department Bill', amount: -45.75 },
+        { date: '2025-01-07', description: 'AT&T Internet Service', amount: -65.00 },
+        { date: '2025-01-06', description: 'Auto Loan Payment - Wells Fargo', amount: -385.50 }
       ]
       setTransactions(mockTransactions)
-      setParsedCount(49)
+      setParsedCount(mockTransactions.length)
     }, 1000)
   }
 
@@ -120,9 +128,31 @@ function App() {
         <header className="header">
           <h1>Personal Finance Manager</h1>
           <p>Uploads, parsing, calendar, and a no-nonsense debt attack plan.</p>
+          
+          <div className="tab-navigation">
+            <button 
+              className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+              onClick={() => setActiveTab('overview')}
+            >
+              Overview
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'bills' ? 'active' : ''}`}
+              onClick={() => setActiveTab('bills')}
+            >
+              Bill Tracker
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'debts' ? 'active' : ''}`}
+              onClick={() => setActiveTab('debts')}
+            >
+              Debt Planner
+            </button>
+          </div>
         </header>
 
-        <div className="main-grid">
+        {activeTab === 'overview' && (
+          <div className="main-grid">
           {/* Upload Bank Statement */}
           <div className="card upload-card">
             <div className="card-header">
@@ -297,6 +327,92 @@ function App() {
             </div>
           </div>
         </div>
+        )}
+
+        {activeTab === 'bills' && (
+          <div className="bills-section">
+            <BillTracker transactions={transactions} />
+          </div>
+        )}
+
+        {activeTab === 'debts' && (
+          <div className="debt-section-full">
+            <div className="card debt-card">
+              <div className="card-header">
+                <h2>Debt Payoff Planner</h2>
+                <div className="method-badge">Snowball Avalanche</div>
+              </div>
+              
+              <div className="debt-controls">
+                <div className="control-group">
+                  <label>Method</label>
+                  <select 
+                    value={method} 
+                    onChange={(e) => setMethod(e.target.value as 'snowball' | 'avalanche')}
+                    className="method-select"
+                  >
+                    <option value="snowball">Snowball (smallest balance first)</option>
+                    <option value="avalanche">Avalanche (highest APR first)</option>
+                  </select>
+                </div>
+                
+                <div className="control-group">
+                  <label>Monthly Extra ($)</label>
+                  <input 
+                    type="number" 
+                    value={monthlyExtra}
+                    onChange={(e) => setMonthlyExtra(Number(e.target.value))}
+                    className="extra-input"
+                  />
+                  <button className="calculate-btn" onClick={calculatePlan}>Calculate Plan</button>
+                </div>
+              </div>
+
+              <div className="debt-section">
+                <p>Enter your debts:</p>
+                <div className="debt-headers">
+                  <span>Name</span>
+                  <span>Balance</span>
+                  <span>APR %</span>
+                  <span>Min/mo</span>
+                </div>
+                
+                {debts.map((debt) => (
+                  <div key={debt.id} className="debt-row">
+                    <input 
+                      type="text"
+                      placeholder="Debt name"
+                      value={debt.name}
+                      onChange={(e) => updateDebt(debt.id, 'name', e.target.value)}
+                    />
+                    <input 
+                      type="number"
+                      placeholder="0"
+                      value={debt.balance || ''}
+                      onChange={(e) => updateDebt(debt.id, 'balance', Number(e.target.value))}
+                    />
+                    <input 
+                      type="number"
+                      placeholder="0"
+                      value={debt.apr || ''}
+                      onChange={(e) => updateDebt(debt.id, 'apr', Number(e.target.value))}
+                    />
+                    <input 
+                      type="number"
+                      placeholder="0"
+                      value={debt.minimumPayment || ''}
+                      onChange={(e) => updateDebt(debt.id, 'minimumPayment', Number(e.target.value))}
+                    />
+                  </div>
+                ))}
+                
+                <button className="add-debt-btn" onClick={addDebt}>
+                  + Add Debt
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
