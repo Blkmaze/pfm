@@ -95,7 +95,7 @@ export default function Calendar({ events, onAddPayday, onDeleteEvent, onDiscove
 
   const renderCalendar = () => {
     const daysInMonth = 31
-    const startDay = 6 // August 2025 starts on Friday (6)
+    const startDay = 1 // August 2025 starts on Friday, so 18th is Monday (1)
     const days = []
 
     // Empty cells for days before month starts
