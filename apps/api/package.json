@@ -1,5 +1,12 @@
 {
-  "dependencies": {
-    "lucide-react": "^0.539.0"
-  }
+  "name": "pfm-api",
+  "version": "1.0.0",
+  "description": "Personal Finance Manager API",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
 }
