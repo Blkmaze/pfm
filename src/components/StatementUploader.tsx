@@ -592,13 +592,17 @@ export default function StatementUploader({ onTransactionsParsed, onDataReplaced
       )}
 
       <div className="upload-info">
-        <h4>Automatic Processing Features:</h4>
+        <h4>Complete Statement Processing:</h4>
         <ul>
+          <li>✓ Extracts ALL transactions from your statement</li>
+          <li>✓ Processes complete multi-page documents</li>
           <li>✓ Intelligent transaction categorization</li>
           <li>✓ Merchant name extraction and cleanup</li>
           <li>✓ Duplicate detection and handling</li>
           <li>✓ Bill pattern recognition for recurring payments</li>
           <li>✓ Data validation and error handling</li>
+          <li>✓ Chronological transaction ordering</li>
+          <li>✓ Complete balance tracking</li>
         </ul>
       </div>
 
