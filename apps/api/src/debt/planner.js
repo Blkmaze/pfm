@@ -1,4 +1,3 @@
-\
 export function planPayoff({ debts, monthlyBudget, method='avalanche' }){
   const copy = debts.map(d=> ({...d, balance: d.principal }));
   const order = ()=> copy
